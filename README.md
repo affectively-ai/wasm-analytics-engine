@@ -36,4 +36,4 @@ MIT License
 
 ---
 
-Made with ❤️ by [AFFECTIVELY](https://affectively.app)
+Made with ️ by [AFFECTIVELY](https://affectively.ai)

@@ -1,37 +1,39 @@
 {
-    "name": "@affectively/wasm-analytics-engine",
-    "version": "1.0.0",
-    "description": "High-performance WebAssembly analytics engine - metrics computation, event processing, aggregations.",
-    "main": "pkg/wasm_analytics_engine.js",
-    "types": "pkg/wasm_analytics_engine.d.ts",
-    "files": [
-        "pkg",
-        "src",
-        "Cargo.toml",
-        "LICENSE",
-        "README.md"
-    ],
-    "scripts": {
-        "build": "wasm-pack build --target web --out-dir pkg",
-        "build:node": "wasm-pack build --target nodejs --out-dir pkg-node",
-        "test": "cargo test"
-    },
-    "keywords": [
-        "wasm",
-        "webassembly",
-        "analytics",
-        "metrics",
-        "events",
-        "aggregation",
-        "rust"
-    ],
-    "author": "AFFECTIVELY <opensource@affectively.ai>",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/affectively-ai/wasm-analytics-engine.git"
-    },
-    "publishConfig": {
-        "access": "public"
-    }
+  "name": "@affectively/wasm-analytics-engine",
+  "version": "1.0.0",
+  "description": "High-performance WebAssembly analytics engine - metrics computation, event processing, aggregations.",
+  "main": "pkg/wasm_analytics_engine.js",
+  "types": "pkg/wasm_analytics_engine.d.ts",
+  "files": [
+    "pkg",
+    "src",
+    "Cargo.toml",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg",
+    "build:node": "wasm-pack build --target nodejs --out-dir pkg-node",
+    "prepublishOnly": "npm run build",
+    "publish": "npm publish --access public",
+    "test": "cargo test"
+  },
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "analytics",
+    "metrics",
+    "events",
+    "aggregation",
+    "rust"
+  ],
+  "author": "AFFECTIVELY <opensource@affectively.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/affectively-ai/wasm-analytics-engine.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -16,7 +16,7 @@ High-performance WebAssembly analytics engine written in Rust.
 
 ```bash
 npm install @affectively/wasm-analytics-engine
-```
+```text
 
 ## Quick Start
 

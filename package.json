@@ -1,6 +1,6 @@
 {
   "name": "@affectively/wasm-analytics-engine",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "High-performance WebAssembly analytics engine - metrics computation, event processing, aggregations.",
   "main": "pkg/wasm_analytics_engine.js",
   "types": "pkg/wasm_analytics_engine.d.ts",
@@ -28,7 +28,7 @@
     "rust"
   ],
   "author": "AFFECTIVELY <opensource@affectively.ai>",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/affectively-ai/wasm-analytics-engine.git"

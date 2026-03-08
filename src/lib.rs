@@ -242,10 +242,40 @@ mod tests {
 
         let json = serde_json::to_string(&reflections).unwrap();
         let result = calculate_co_occurrence(&json);
-        let parsed: Vec<CoOccurrence> = serde_json::from_str(&result).unwrap_or_default();
-        
-        // Should have at least one co-occurrence if related emotions exist
-        // (parsed is a valid Vec regardless of size)
-        assert!(parsed.is_empty() || !parsed.is_empty()); // Always passes, just confirming parse worked
+        let parsed: Vec<CoOccurrence> = serde_json::from_str(&result)
+            .expect("co-occurrence result should be valid JSON");
+
+        // Should have exactly one co-occurrence pair (joy + excitement)
+        assert_eq!(parsed.len(), 1, "Expected one co-occurrence pair for joy+excitement");
+        let pair = &parsed[0].emotion_pair;
+        assert!(
+            (pair[0] == "excitement" && pair[1] == "joy")
+                || (pair[0] == "joy" && pair[1] == "excitement"),
+            "Expected joy and excitement pair, got: {:?}", pair
+        );
+    }
+
+    #[test]
+    fn test_calculate_co_occurrence_invalid_json() {
+        let result = calculate_co_occurrence("not valid json");
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn test_calculate_time_patterns_invalid_json() {
+        let result = calculate_time_patterns("not valid json");
+        assert_eq!(result, "{\"dayOfWeek\":[],\"timeOfDay\":[],\"month\":[]}");
+    }
+
+    #[test]
+    fn test_calculate_trends_invalid_json() {
+        let result = calculate_trends("not valid json");
+        assert_eq!(result, "{\"daily\":[],\"weekly\":[],\"monthly\":[]}");
+    }
+
+    #[test]
+    fn test_calculate_statistics_invalid_json() {
+        let result = calculate_statistics("not valid json");
+        assert_eq!(result, "{\"mean\":0,\"median\":0,\"min\":0,\"max\":0,\"percentiles\":{}}");
     }
 }

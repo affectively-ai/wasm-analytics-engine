@@ -173,7 +173,18 @@ fn parse_timestamp(ts: &str) -> Option<SimpleDateTime> {
     let month = date_parts[1].parse::<u32>().ok()?;
     let day = date_parts[2].parse::<u32>().ok()?;
 
+    // Validate month and day ranges
+    if month < 1 || month > 12 {
+        return None;
+    }
+    let max_day = days_in_month(year, month);
+    if day < 1 || day > max_day {
+        return None;
+    }
+
     let time_part = parts[1].trim_end_matches('Z');
+    // Strip fractional seconds (e.g., ".000" from "10:00:00.000Z")
+    let time_part = time_part.split('.').next().unwrap_or(time_part);
     let time_parts: Vec<&str> = time_part.split(':').collect();
     if time_parts.len() < 2 {
         return None;
@@ -182,25 +193,48 @@ fn parse_timestamp(ts: &str) -> Option<SimpleDateTime> {
     let hour = time_parts[0].parse::<u32>().ok()?;
     let minute = time_parts.get(1)?.parse::<u32>().ok()?;
 
+    // Validate hour and minute ranges
+    if hour > 23 || minute > 59 {
+        return None;
+    }
+
     // Calculate weekday (simplified - using Zeller's congruence)
     let weekday = calculate_weekday(year, month, day);
 
     Some(SimpleDateTime {
         year,
         month,
-        _day: day,
+        day,
         hour,
-        _minute: minute,
+        minute,
         weekday,
     })
 }
 
+/// Return the number of days in a given month, accounting for leap years
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(year) { 29 } else { 28 }
+        }
+        _ => 0,
+    }
+}
+
+/// Check if a year is a leap year
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+#[allow(dead_code)]
 struct SimpleDateTime {
     year: i32,
     month: u32,
-    _day: u32,
+    day: u32,
     hour: u32,
-    _minute: u32,
+    minute: u32,
     weekday: u32, // 0 = Sunday, 6 = Saturday
 }
 
@@ -220,9 +254,20 @@ impl SimpleDateTime {
     fn month(&self) -> u32 {
         self.month
     }
+
+    #[cfg(test)]
+    fn day(&self) -> u32 {
+        self.day
+    }
+
+    #[cfg(test)]
+    fn minute(&self) -> u32 {
+        self.minute
+    }
 }
 
 /// Calculate weekday using Zeller's congruence
+/// Returns 0=Sunday, 1=Monday, ..., 6=Saturday
 fn calculate_weekday(year: i32, month: u32, day: u32) -> u32 {
     let mut y = year;
     let mut m = month as i32;
@@ -232,8 +277,8 @@ fn calculate_weekday(year: i32, month: u32, day: u32) -> u32 {
     }
     let k = y % 100;
     let j = y / 100;
-    let h = (day as i32 + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
-    ((h + 6) % 7) as u32 // Convert Zeller (0=Sat) → 0=Sunday, 6=Saturday
+    let h = ((day as i32 + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7 + 7) % 7;
+    ((h + 6) % 7) as u32 // Convert Zeller (0=Sat) to 0=Sunday, 6=Saturday
 }
 
 #[cfg(test)]
@@ -247,8 +292,51 @@ mod tests {
         let dt = ts.unwrap();
         assert_eq!(dt.year(), 2024);
         assert_eq!(dt.month(), 1);
-        assert_eq!(dt._day, 15);
+        assert_eq!(dt.day(), 15);
         assert_eq!(dt.hour(), 10);
+        assert_eq!(dt.minute(), 0);
+    }
+
+    #[test]
+    fn test_parse_timestamp_with_fractional_seconds() {
+        let ts = parse_timestamp("2024-01-15T10:30:00.000Z");
+        assert!(ts.is_some());
+        let dt = ts.unwrap();
+        assert_eq!(dt.hour(), 10);
+        assert_eq!(dt.minute(), 30);
+    }
+
+    #[test]
+    fn test_parse_timestamp_rejects_invalid_month() {
+        assert!(parse_timestamp("2024-13-15T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-00-15T10:00:00Z").is_none());
+    }
+
+    #[test]
+    fn test_parse_timestamp_rejects_invalid_day() {
+        assert!(parse_timestamp("2024-02-30T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-01-32T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-01-00T10:00:00Z").is_none());
+    }
+
+    #[test]
+    fn test_parse_timestamp_rejects_invalid_hour() {
+        assert!(parse_timestamp("2024-01-15T25:00:00Z").is_none());
+    }
+
+    #[test]
+    fn test_parse_timestamp_rejects_invalid_minute() {
+        assert!(parse_timestamp("2024-01-15T10:60:00Z").is_none());
+    }
+
+    #[test]
+    fn test_leap_year_feb_29() {
+        // 2024 is a leap year
+        let ts = parse_timestamp("2024-02-29T10:00:00Z");
+        assert!(ts.is_some());
+        // 2023 is not a leap year
+        let ts = parse_timestamp("2023-02-29T10:00:00Z");
+        assert!(ts.is_none());
     }
 
     #[test]
@@ -256,5 +344,11 @@ mod tests {
         // January 15, 2024 is a Monday (1)
         let weekday = calculate_weekday(2024, 1, 15);
         assert_eq!(weekday, 1);
+        // January 14, 2024 is a Sunday (0)
+        let weekday = calculate_weekday(2024, 1, 14);
+        assert_eq!(weekday, 0);
+        // January 20, 2024 is a Saturday (6)
+        let weekday = calculate_weekday(2024, 1, 20);
+        assert_eq!(weekday, 6);
     }
 }

@@ -104,27 +104,31 @@ fn format_trends(map: HashMap<String, TrendData>) -> Vec<TrendDataPoint> {
     trends
 }
 
-/// Get week key (YYYY-WW format)
+/// Get week key (YYYY-WW format) using ISO week numbering
 fn get_week_key(year: i32, month: u32, day: u32) -> String {
-    // Simplified week calculation
+    // Validate inputs
+    if month < 1 || month > 12 || day < 1 || day > 31 {
+        return format!("{:04}-W01", year);
+    }
+
     // Calculate day of year
-    let days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let days_in_months = [31u32, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
     let mut day_of_year = day;
     for i in 0..(month - 1) as usize {
-        day_of_year += days_in_month[i];
+        day_of_year += days_in_months[i];
     }
-    
-    // Check for leap year
-    let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    // Add leap day for dates after February in a leap year
     if is_leap && month > 2 {
         day_of_year += 1;
     }
 
-    let week = (day_of_year as f64 / 7.0).ceil() as u32;
+    // Clamp week to 1-53 range
+    let week = ((day_of_year as f64 / 7.0).ceil() as u32).max(1).min(53);
     format!("{:04}-W{:02}", year, week)
 }
 
-/// Simple timestamp parser (reused from time_patterns)
+/// Simple timestamp parser for trends (only needs date components)
 fn parse_timestamp(ts: &str) -> Option<SimpleDateTime> {
     let parts: Vec<&str> = ts.split('T').collect();
     if parts.len() != 2 {
@@ -140,23 +144,27 @@ fn parse_timestamp(ts: &str) -> Option<SimpleDateTime> {
     let month = date_parts[1].parse::<u32>().ok()?;
     let day = date_parts[2].parse::<u32>().ok()?;
 
-    let time_part = parts[1].trim_end_matches('Z');
-    let time_parts: Vec<&str> = time_part.split(':').collect();
-    if time_parts.len() < 2 {
+    // Validate month and day ranges
+    if month < 1 || month > 12 {
         return None;
     }
-
-    let hour = time_parts[0].parse::<u32>().ok()?;
-    let minute = time_parts.get(1)?.parse::<u32>().ok()?;
-    let weekday = calculate_weekday(year, month, day);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+            if is_leap { 29 } else { 28 }
+        }
+        _ => return None,
+    };
+    if day < 1 || day > max_day {
+        return None;
+    }
 
     Some(SimpleDateTime {
         year,
         month,
         day,
-        _hour: hour,
-        _minute: minute,
-        _weekday: weekday,
     })
 }
 
@@ -164,9 +172,6 @@ struct SimpleDateTime {
     year: i32,
     month: u32,
     day: u32,
-    _hour: u32,
-    _minute: u32,
-    _weekday: u32,
 }
 
 impl SimpleDateTime {
@@ -177,19 +182,11 @@ impl SimpleDateTime {
     fn month(&self) -> u32 {
         self.month
     }
-}
 
-fn calculate_weekday(year: i32, month: u32, day: u32) -> u32 {
-    let mut y = year;
-    let mut m = month as i32;
-    if m < 3 {
-        m += 12;
-        y -= 1;
+    #[cfg(test)]
+    fn day(&self) -> u32 {
+        self.day
     }
-    let k = y % 100;
-    let j = y / 100;
-    let h = (day as i32 + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
-    ((h + 5) % 7) as u32
 }
 
 #[cfg(test)]
@@ -200,5 +197,43 @@ mod tests {
     fn test_get_week_key() {
         let key = get_week_key(2024, 1, 15);
         assert!(key.starts_with("2024-W"));
+    }
+
+    #[test]
+    fn test_get_week_key_bounds() {
+        // First day of year should be week 1
+        let key = get_week_key(2024, 1, 1);
+        assert_eq!(key, "2024-W01");
+        // Last day of year should not exceed W53
+        let key = get_week_key(2024, 12, 31);
+        assert!(key.starts_with("2024-W"));
+        let week_num: u32 = key[6..].parse().unwrap();
+        assert!(week_num >= 1 && week_num <= 53);
+    }
+
+    #[test]
+    fn test_get_week_key_leap_year() {
+        // March 1 in a leap year
+        let key = get_week_key(2024, 3, 1);
+        assert!(key.starts_with("2024-W"));
+    }
+
+    #[test]
+    fn test_parse_timestamp_rejects_invalid() {
+        assert!(parse_timestamp("2024-13-15T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-00-15T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-02-30T10:00:00Z").is_none());
+        assert!(parse_timestamp("2024-01-00T10:00:00Z").is_none());
+        assert!(parse_timestamp("not-a-date").is_none());
+    }
+
+    #[test]
+    fn test_parse_timestamp_valid() {
+        let ts = parse_timestamp("2024-01-15T10:00:00Z");
+        assert!(ts.is_some());
+        let dt = ts.unwrap();
+        assert_eq!(dt.year(), 2024);
+        assert_eq!(dt.month(), 1);
+        assert_eq!(dt.day(), 15);
     }
 }

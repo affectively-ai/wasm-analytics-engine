@@ -24,7 +24,8 @@ pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
             for j in (i + 1)..emotions.len() {
                 let mut pair = [emotions[i].clone(), emotions[j].clone()];
                 pair.sort(); // Ensure consistent ordering
-                let key = format!("{}-{}", pair[0], pair[1]);
+                // Use a delimiter that cannot appear in emotion IDs
+                let key = format!("{}|||{}", pair[0], pair[1]);
                 *co_occurrence_map.entry(key).or_insert(0) += 1;
             }
         }
@@ -33,7 +34,7 @@ pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
     let mut result: Vec<CoOccurrence> = co_occurrence_map
         .into_iter()
         .map(|(key, count)| {
-            let parts: Vec<&str> = key.split('-').collect();
+            let parts: Vec<&str> = key.splitn(2, "|||").collect();
             let emotion_pair = if parts.len() == 2 {
                 [parts[0].to_string(), parts[1].to_string()]
             } else {
@@ -82,6 +83,34 @@ mod tests {
 
         let result = compute_co_occurrence(&reflections);
         assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_compute_co_occurrence_hyphenated_ids() {
+        let reflections = vec![
+            Reflection {
+                timestamp: "2024-01-15T10:00:00Z".to_string(),
+                emotion_id: Some("mixed-joy".to_string()),
+                emotion_name: Some("Mixed Joy".to_string()),
+                intensity: Some(7.0),
+                related_emotions: Some(vec!["deep-sadness".to_string()]),
+                location: None,
+                people: None,
+                coping_strategies: None,
+                mood_before: None,
+                mood_after: None,
+            },
+        ];
+
+        let result = compute_co_occurrence(&reflections);
+        assert!(!result.is_empty());
+        // Verify hyphenated emotion IDs are preserved correctly
+        let pair = &result[0].emotion_pair;
+        assert!(
+            (pair[0] == "deep-sadness" && pair[1] == "mixed-joy")
+                || (pair[0] == "mixed-joy" && pair[1] == "deep-sadness"),
+            "Expected hyphenated emotion IDs to be preserved, got: {:?}", pair
+        );
     }
 
     #[test]

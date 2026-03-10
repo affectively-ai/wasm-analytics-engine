@@ -1,6 +1,6 @@
 {
   "name": "@affectively/wasm-analytics-engine",
-  "version": "1.0.3",
+  "version": "5.0.0",
   "description": "High-performance WebAssembly analytics engine - metrics computation, event processing, aggregations.",
   "main": "pkg/wasm_analytics_engine.js",
   "types": "pkg/wasm_analytics_engine.d.ts",

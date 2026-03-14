@@ -1,27 +1,29 @@
 # @affectively/wasm-analytics-engine
 
-High-performance WebAssembly analytics engine written in Rust.
+`@affectively/wasm-analytics-engine` is a Rust/WebAssembly module for event processing, aggregation, and funnel analysis.
 
-[![npm](https://img.shields.io/npm/v/@affectively/wasm-analytics-engine.svg)](https://www.npmjs.com/package/@affectively/wasm-analytics-engine)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+The fair brag is that it stays focused. This package gives you a small analytics core that can run through a WASM entrypoint without pulling in a larger analytics stack.
 
-## Features
+## What It Helps You Do
 
-- **Metrics Computation** - Calculate analytics metrics at WASM speed
-- **Event Processing** - Process and transform event streams
-- **Aggregations** - Efficient count, sum, average operations
-- **Funnel Analysis** - Compute conversion funnels
+- process raw event streams
+- compute aggregate metrics
+- calculate simple funnel progressions
 
 ## Installation
 
 ```bash
 npm install @affectively/wasm-analytics-engine
-```text
+```
 
 ## Quick Start
 
-```typescript
-import init, { process_events, compute_funnel, aggregate_metrics } from '@affectively/wasm-analytics-engine';
+```ts
+import init, {
+  process_events,
+  compute_funnel,
+  aggregate_metrics,
+} from '@affectively/wasm-analytics-engine';
 
 await init();
 
@@ -30,10 +32,6 @@ const funnel = compute_funnel(events, ['signup', 'verify', 'purchase']);
 const metrics = aggregate_metrics(events, ['pageviews', 'sessions']);
 ```
 
-## License
+## Why This README Is Grounded
 
-MIT License
-
----
-
-Made with ️ by [AFFECTIVELY](https://affectively.ai)
+This package does not need to be more than it is. The strongest fair brag is that it already gives you a compact analytics-focused WASM module.

@@ -31,7 +31,7 @@
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/affectively-ai/wasm-analytics-engine.git"
+    "url": "git+https://github.com/forkjoin-ai/wasm-analytics-engine.git"
   },
   "publishConfig": {
     "access": "public"

@@ -5,7 +5,7 @@ authors = ["AFFECTIVELY <opensource@affectively.ai>"]
 edition = "2021"
 license = "MIT"
 description = "High-performance analytics engine for WebAssembly - metrics, events, aggregations"
-repository = "https://github.com/affectively-ai/wasm-analytics-engine"
+repository = "https://github.com/forkjoin-ai/wasm-analytics-engine"
 keywords = ["wasm", "analytics", "metrics", "events"]
 categories = ["data-structures", "wasm"]
 

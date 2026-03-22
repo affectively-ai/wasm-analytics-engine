@@ -1,6 +1,19 @@
 use super::{Reflection, CoOccurrence};
 use std::collections::HashMap;
 
+/// Buleyean weight: probability of item given rounds observed and times rejected.
+/// Items rejected in every round collapse to floor weight and get skipped.
+#[inline]
+fn buleyean_weight(rounds: usize, rejections: usize) -> f64 {
+    if rounds == 0 { return 1.0; }
+    let r = rejections.min(rounds) as f64;
+    let n = rounds as f64;
+    (n - r) / n
+}
+
+/// Floor-weight threshold: items at or below this are eliminated.
+const FLOOR_WEIGHT: f64 = 0.0;
+
 /// Compute emotion co-occurrence matrix
 pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
     let mut co_occurrence_map: HashMap<String, usize> = HashMap::new();
@@ -33,7 +46,14 @@ pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
 
     let mut result: Vec<CoOccurrence> = co_occurrence_map
         .into_iter()
-        .map(|(key, count)| {
+        .filter_map(|(key, count)| {
+            // Deceptacon: skip floor-weight co-occurrence pairs.
+            // Pairs that appeared zero times out of total rounds are eliminated.
+            let w = buleyean_weight(total, total.saturating_sub(count));
+            if w <= FLOOR_WEIGHT {
+                return None;
+            }
+
             let parts: Vec<&str> = key.splitn(2, "|||").collect();
             let emotion_pair = if parts.len() == 2 {
                 [parts[0].to_string(), parts[1].to_string()]
@@ -41,7 +61,7 @@ pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
                 ["unknown".to_string(), "unknown".to_string()]
             };
 
-            CoOccurrence {
+            Some(CoOccurrence {
                 emotion_pair,
                 count,
                 percentage: if total > 0 {
@@ -49,7 +69,7 @@ pub fn compute_co_occurrence(reflections: &[Reflection]) -> Vec<CoOccurrence> {
                 } else {
                     0.0
                 },
-            }
+            })
         })
         .collect();
 

@@ -1,6 +1,19 @@
 use super::{Reflection, TrendDataPoint, EmotionCount, TrendsResult};
 use std::collections::HashMap;
 
+/// Buleyean weight: probability of item given rounds observed and times rejected.
+/// Items rejected in every round collapse to floor weight and get skipped.
+#[inline]
+fn buleyean_weight(rounds: usize, rejections: usize) -> f64 {
+    if rounds == 0 { return 1.0; }
+    let r = rejections.min(rounds) as f64;
+    let n = rounds as f64;
+    (n - r) / n
+}
+
+/// Floor-weight threshold: items at or below this are eliminated.
+const FLOOR_WEIGHT: f64 = 0.0;
+
 /// Compute trends over time (daily, weekly, monthly)
 pub fn compute_trends(
     reflections: &[Reflection],
@@ -70,6 +83,10 @@ fn update_trend_data(
 }
 
 fn format_trends(map: HashMap<String, TrendData>) -> Vec<TrendDataPoint> {
+    // Deceptacon: skip floor-weight emotions when selecting top_emotion.
+    // Emotions that never contributed across all periods are eliminated.
+    let total_periods = map.len();
+
     let mut trends: Vec<TrendDataPoint> = map
         .into_iter()
         .map(|(date, data)| {
@@ -82,6 +99,11 @@ fn format_trends(map: HashMap<String, TrendData>) -> Vec<TrendDataPoint> {
             let top_emotion = data
                 .emotions
                 .into_iter()
+                .filter(|(_, (_, count))| {
+                    // Deceptacon: skip floor-weight emotions.
+                    let w = buleyean_weight(total_periods, total_periods.saturating_sub(*count));
+                    w > FLOOR_WEIGHT
+                })
                 .max_by_key(|(_, (_, count))| *count)
                 .map(|(emotion_id, (emotion_name, count))| EmotionCount {
                     emotion_id,
